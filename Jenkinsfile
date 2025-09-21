@@ -7,7 +7,6 @@ pipeline {
     }
 
     environment {
-        // This ID must exactly match the ID in your Jenkins credentials
         ARTIFACTORY_CREDENTIALS_ID = 'JF_ACCESS_TOKEN'
         NPM_REPO = 'demo-npm'
         GIT_URL = 'https://github.com/barunita/demo-game.git'
@@ -22,9 +21,8 @@ pipeline {
         
         stage('Set up NPM Registry') {
             steps {
-                // Use the corrected credentials ID
-                withCredentials([string(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, variable: 'JFROG_TOKEN')]) {
-                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_TOKEN'
+                withCredentials([usernamePassword(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, usernameVariable: 'JFROG_USER', passwordVariable: 'JFROG_KEY')]) {
+                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_KEY'
                     sh 'npm config set registry https://arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/'
                     sh 'npm config set always-auth true'
                 }
