@@ -1,46 +1,48 @@
 // Jenkinsfile
 pipeline {
-    agent any 
-    
+    agent any
+
     tools {
-        // This ensures the correct version of Node.js is available
-        nodejs 'node-18.17.0' // Replace with your desired Node.js version
+        nodejs 'node'
+        jfrog 'jfrog-cli'
     }
-    
+
+    environment {
+        // You can define your JFrog credentials and repo name as variables
+        ARTIFACTORY_CREDENTIALS_ID = 'jfrog-credentials'
+        NPM_REPO = 'demo-npm'
+        GIT_URL = 'https://github.com/barunita/demo-game.git'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                // This checks out your code from a Git repository
-                git url: 'https://github.com/your-username/your-repo.git', branch: 'main'
+                git branch: 'main', url: env.GIT_URL
             }
         }
         
         stage('Set up NPM Registry') {
             steps {
-                // Use the stored Jenkins credentials to create a .npmrc file
-                withCredentials([usernamePassword(credentialsId: 'jfrog-npm-credentials', usernameVariable: 'JFROG_USER', passwordVariable: 'JFROG_KEY')]) {
-                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth $JFROG_KEY'
+                // Use withCredentials to securely access JFrog credentials
+                withCredentials([usernamePassword(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, usernameVariable: 'JFROG_USER', passwordVariable: 'JFROG_KEY')]) {
+                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_KEY'
                     sh 'npm config set registry https://arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/'
                     sh 'npm config set always-auth true'
                 }
             }
         }
         
-        stage('Install Dependencies') {
+        stage('npm Install') {
             steps {
+                // Install dependencies from the configured registry
                 sh 'npm install'
             }
         }
         
-        stage('Build') {
+        stage('Publish to Artifactory') {
             steps {
-                sh 'npm run build'
-            }
-        }
-        
-        stage('Publish to JFrog') {
-            steps {
-                sh 'npm publish --access public' // Use --access public for scoped packages
+                // Publish the package using the npm command
+                sh 'npm publish'
             }
         }
     }
