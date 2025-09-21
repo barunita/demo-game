@@ -21,9 +21,10 @@ pipeline {
 
         stage('Set up NPM Registry') {
             steps {
-                // Use a credentials binding and write to a .npmrc file
+                // Use a credentials binding and write to a .npmrc file securely
                 withCredentials([string(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, variable: 'JFROG_TOKEN')]) {
                     sh """
+                        # Create the .npmrc file with the correct configuration
                         echo "registry=${NPM_REGISTRY_URL}" > .npmrc
                         echo "//arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_TOKEN" >> .npmrc
                         echo "always-auth=true" >> .npmrc
@@ -34,7 +35,7 @@ pipeline {
 
         stage('npm Install') {
             steps {
-                // npm will now read the .npmrc file and use it
+                // npm will now read the correctly created .npmrc file
                 sh 'npm install'
             }
         }
