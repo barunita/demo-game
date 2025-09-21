@@ -7,9 +7,10 @@ pipeline {
     }
 
     environment {
+        // Your local repository where dependencies will be cached
+        NPM_LOCAL_REPO = 'demo-npm-local'
         ARTIFACTORY_CREDENTIALS_ID = 'JF_ACCESS_TOKEN'
         GIT_URL = 'https://github.com/barunita/demo-game.git'
-        NPM_REGISTRY_URL = 'https://arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/'
     }
 
     stages {
@@ -18,30 +19,28 @@ pipeline {
                 git branch: 'main', url: env.GIT_URL
             }
         }
-
+        
         stage('Set up NPM Registry') {
             steps {
-                // Use a credentials binding and write to a .npmrc file securely
                 withCredentials([string(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, variable: 'JFROG_TOKEN')]) {
-                    sh """
-                        # Create the .npmrc file with the correct configuration
-                        echo "registry=${NPM_REGISTRY_URL}" > .npmrc
-                        echo "//arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_TOKEN" >> .npmrc
-                        echo "always-auth=true" >> .npmrc
-                    """
+                    sh 'npm config set registry https://arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/'
+                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_TOKEN'
+                    sh 'npm config set always-auth true'
                 }
             }
         }
-
+        
         stage('npm Install') {
             steps {
-                // npm will now read the correctly created .npmrc file
+                // This command will install your dependencies from public npm
+                // and cache them in your JFrog remote repository.
                 sh 'npm install'
             }
         }
-
-        stage('Publish to Artifactory') {
+        
+        stage('npm Publish') {
             steps {
+                // This command publishes your package to your local repository.
                 sh 'npm publish'
             }
         }
