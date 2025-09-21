@@ -21,18 +21,20 @@ pipeline {
 
         stage('Set up NPM Registry') {
             steps {
-                // Use the Secret text credential from Jenkins
+                // Use a credentials binding and write to a .npmrc file
                 withCredentials([string(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, variable: 'JFROG_TOKEN')]) {
-                    sh 'npm config set registry ' + env.NPM_REGISTRY_URL
-                    sh 'npm config set ' + env.NPM_REGISTRY_URL.replace('https://', '//') + ':_auth=' + env.JFROG_TOKEN
-                    sh 'npm config set always-auth true'
+                    sh """
+                        echo "registry=${NPM_REGISTRY_URL}" > .npmrc
+                        echo "//arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_TOKEN" >> .npmrc
+                        echo "always-auth=true" >> .npmrc
+                    """
                 }
             }
         }
 
         stage('npm Install') {
             steps {
-                // This command will now use your JFrog registry for caching.
+                // npm will now read the .npmrc file and use it
                 sh 'npm install'
             }
         }
