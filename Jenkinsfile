@@ -1,44 +1,61 @@
-// Jenkinsfile (Corrected)
-pipeline {
-    agent any
+// Jenkinsfile
+pipeline { 
+    agent any 
 
-    tools {
-        nodejs 'node'
-    }
+    tools { 
+        nodejs 'node' 
+        jfrog 'jfrog-cli' 
+    } 
 
-    environment {
-        ARTIFACTORY_CREDENTIALS_ID = 'JF_ACCESS_TOKEN'
-        NPM_REPO = 'demo-npm'
+    environment { 
+        // Corrected the Git URL to your new repository
         GIT_URL = 'https://github.com/barunita/demo-game.git'
-    }
+        ARTIFACTORY_URL = "https://arunitatrial123.jfrog.io" 
+        ARTIFACTORY_CREDENTIALS_ID = 'JF_ACCESS_TOKEN' 
+        // Corrected the variable name to reflect your repository
+        NPM_REPO = 'demo-npm' 
+    } 
 
-    stages {
-        stage('Checkout') {
-            steps {
+    stages { 
+        stage('Checkout') { 
+            steps { 
+                // Using the corrected Git URL from the environment variable
                 git branch: 'main', url: env.GIT_URL
-            }
-        }
+            } 
+        } 
         
-        stage('Set up NPM Registry') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, usernameVariable: 'JFROG_USER', passwordVariable: 'JFROG_KEY')]) {
-                    sh 'npm config set //arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/:_auth=$JFROG_KEY'
-                    sh 'npm config set registry https://arunitatrial123.jfrog.io/artifactory/api/npm/demo-npm/'
-                    sh 'npm config set always-auth true'
-                }
-            }
-        }
+        stage('Configure JFrog CLI') { 
+            steps { 
+                script { 
+                    try { 
+                        withCredentials([string(credentialsId: env.ARTIFACTORY_CREDENTIALS_ID, variable: 'ART_TOKEN')]) { 
+                            sh "${tool 'jfrog-cli'}/jf c add arunitatrial123 --url=${env.ARTIFACTORY_URL} --access-token=${ART_TOKEN}" 
+                        } 
+                    } catch (err) { 
+                        echo "Warning: JFrog server 'arunitatrial123' already exists. Proceeding without re-adding." 
+                    } 
+                } 
+            } 
+        } 
         
-        stage('npm Install') {
-            steps {
-                sh 'npm install'
-            }
-        }
+        stage('npm Install') { 
+            steps { 
+                sh 'npm install' 
+            } 
+        } 
         
-        stage('Publish to Artifactory') {
-            steps {
-                sh 'npm publish'
-            }
-        }
-    }
+        stage('Configure JFrog npm') { 
+            steps { 
+                // Correctly referencing the NPM_REPO variable
+                sh "${tool 'jfrog-cli'}/jf npm-config --repo-resolve ${env.NPM_REPO} --repo-deploy ${env.NPM_REPO} --server-id-deploy arunitatrial123 --server-id-resolve arunitatrial123" 
+            } 
+        } 
+        
+        stage('Publish to Artifactory') { 
+            steps { 
+                // Explicitly defining the deployment repository to ensure publish works
+                sh "${tool 'jfrog-cli'}/jf npm publish --repo-deploy ${env.NPM_REPO}" 
+            } 
+        } 
+    } 
 }
